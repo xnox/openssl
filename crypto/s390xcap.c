@@ -52,6 +52,10 @@ void OPENSSL_cpuid_setup(void)
 {
     sigset_t oset;
     struct sigaction ill_act, oact;
+    uint64_t vec;
+    char *env;
+    int off;
+    int i;
 
     if (OPENSSL_s390xcap_P[0])
         return;
@@ -78,5 +82,27 @@ void OPENSSL_cpuid_setup(void)
         OPENSSL_s390xcap_P[S390X_STFLE + 2] &= ~(S390X_STFLE_VXE |
                                                  S390X_STFLE_VXD |
                                                  S390X_STFLE_VX);
+    }
+
+    if ((env = getenv("OPENSSL_s390xcap")) != NULL) {
+        for (i = 0; i < S390X_CAP_DWORDS; i++) {
+            off = (env[0] == '~') ? 1 : 0;
+
+            if (sscanf(env + off, "%llx", (unsigned long long *)&vec) == 1)
+                OPENSSL_s390xcap_P[i] &= off ? ~vec : vec;
+
+            if (i == S390X_STFLE_DWORDS - 1)
+                env = strchr(env, '.');
+            else
+                env = strpbrk(env, ":.");
+
+            if (env == NULL)
+                break;
+
+            if (env[0] == '.')
+                i = S390X_STFLE_DWORDS - 1;
+
+            env++;
+        }
     }
 }
