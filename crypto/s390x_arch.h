@@ -94,6 +94,14 @@ extern uint64_t OPENSSL_s390xcap_P[];
 # define S390X_KMA_GCM_AES_192	(1ULL << 44)
 # define S390X_KMA_GCM_AES_128	(1ULL << 45)
 
+/* Function codes */
+# define S390X_SHAKE_256_FC     37
+# define S390X_SHAKE_128_FC     36
+# define S390X_SHA3_512_FC      35
+# define S390X_SHA3_384_FC      34
+# define S390X_SHA3_256_FC      33
+# define S390X_SHA3_224_FC      32
+
 /* Function code flags */
 # define S390X_KMA_GCM_LPC	(1ULL <<  8)
 # define S390X_KMA_GCM_LAAD	(1ULL <<  9)

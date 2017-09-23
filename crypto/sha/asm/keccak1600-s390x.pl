@@ -521,6 +521,66 @@ SHA3_squeeze:
 .size	SHA3_squeeze,.-SHA3_squeeze
 ___
 }
+{
+# void s390x_sha3_update_blocks(unsigned long fc, uint64_t A[5][5],
+#                               const unsigned char *inp, size_t len);
+my ($fc,$A,$inp,$len) = map("%r$_",(2..5));
+$code.=<<___;
+.globl	s390x_sha3_update_blocks
+.type	s390x_sha3_update_blocks,\@function
+.align	32
+s390x_sha3_update_blocks:
+.cfi_startproc
+	lgr	%r0,$fc
+	lgr	%r1,$A		# kimd capability vector checked by caller
+	.long	0xb93e0004	# kimd %r0,%r4
+	brc	1,.-4		# pay attention to "partial completion"
+	br	%r14
+.cfi_endproc
+.size	s390x_sha3_update_blocks,.-s390x_sha3_update_blocks
+___
+}
+{
+# void s390x_sha3_final_blocks(unsigned long fc, uint64_t A[5][5],
+#                              const unsigned char *inp, size_t len);
+my ($fc,$A,$inp,$len) = map("%r$_",(2..5));
+$code.=<<___;
+.globl	s390x_sha3_final_blocks
+.type	s390x_sha3_final_blocks,\@function
+.align	32
+s390x_sha3_final_blocks:
+.cfi_startproc
+	lgr	%r0,$fc
+	lgr	%r1,$A		# klmd capability vector checked by caller
+	.long	0xb93f0004	# klmd %r0,%r4
+	brc	1,.-4		# pay attention to "partial completion"
+	br	%r14
+.cfi_endproc
+.size	s390x_sha3_final_blocks,.-s390x_sha3_final_blocks
+___
+}
+{
+# void s390x_shake_final_blocks(unsigned long fc, uint64_t A[5][5],
+#                               unsigned char *out, size_t outlen,
+#                               const unsigned char *inp, size_t inplen);
+my ($fc,$A,$out,$outlen,$inp,$inplen) = map("%r$_",(2..6));
+$code.=<<___;
+.globl	s390x_shake_final_blocks
+.type	s390x_shake_final_blocks,\@function
+.align	32
+s390x_shake_final_blocks:
+.cfi_startproc
+	lgr	%r0,$fc
+	lgr	%r1,$A		# klmd capability vector checked by caller
+	lgr	%r2,$inp
+	l${g}	%r3,$stdframe($sp)
+	.long	0xb93f0042	# klmd %r4,%r2
+	brc	1,.-4		# pay attention to "partial completion"
+	br	%r14
+.cfi_endproc
+.size	s390x_shake_final_blocks,.-s390x_shake_final_blocks
+___
+}
 $code.=<<___;
 .align	256
 	.quad	0,0,0,0,0,0,0,0
