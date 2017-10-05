@@ -57,6 +57,24 @@ void rand_read_tsc(RAND_poll_cb rand_add, void *arg)
 #endif
 
 #ifdef OPENSSL_RAND_SEED_RDCPU
+# if defined(OPENSSL_CPUID_OBJ) && defined(__s390__)
+# include "../s390x_arch.h"
+
+void OPENSSL_s390x_trng(void *buf, size_t buflen);
+
+int rand_read_cpu(RAND_poll_cb rand_add, void *arg)
+{
+    char buff[RANDOMNESS_NEEDED];
+
+    if (OPENSSL_s390xcap_P[S390X_PRNO + 1] & S390X_PRNO_TRNG) {
+        OPENSSL_s390x_trng(buff, sizeof(buff));
+        rand_add(arg, buff, (int)sizeof(buff), sizeof(buff));
+        return 1;
+    }
+
+    return 0;
+}
+# else
 size_t OPENSSL_ia32_rdseed_bytes(char *buf, size_t len);
 size_t OPENSSL_ia32_rdrand_bytes(char *buf, size_t len);
 
@@ -84,6 +102,7 @@ int rand_read_cpu(RAND_poll_cb rand_add, void *arg)
 
     return 0;
 }
+# endif
 #endif
 
 

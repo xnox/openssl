@@ -158,7 +158,11 @@ opthelp:
         printf(" rtdsc");
 #endif
 #ifdef OPENSSL_RAND_SEED_RDCPU
+# if defined(OPENSSL_CPUID_OBJ) && defined(__s390__)
+        printf(" prno-trng");
+# else
         printf(" rdrand ( rdseed rdrand )");
+# endif
 #endif
 #ifdef OPENSSL_RAND_SEED_LIBRANDOM
         printf(" C-library-random");

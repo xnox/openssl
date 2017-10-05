@@ -221,6 +221,17 @@ OPENSSL_instrument_bus2:
 	br	%r14
 .size	OPENSSL_instrument_bus2,.-OPENSSL_instrument_bus2
 
+.globl	OPENSSL_s390x_trng
+.type	OPENSSL_s390x_trng,@function
+.align	16
+OPENSSL_s390x_trng:
+	lghi	%r5,0
+	lghi	%r0,114		# prno capability vector checked by caller
+	.long	0xb93c0042	# prno %r4,%r2
+	brc	1,.-4		# pay attention to "partial completion"
+	br	%r14
+.size	OPENSSL_s390x_trng,.-OPENSSL_s390x_trng
+
 .section	.init
 	brasl	%r14,OPENSSL_cpuid_setup
 
