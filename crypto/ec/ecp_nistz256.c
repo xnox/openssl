@@ -1697,5 +1697,10 @@ const EC_METHOD *EC_GFp_nistz256_method(void)
         0                                           /* ladder_post */
     };
 
+#if defined(__s390__) || defined(__s390x__)
+# include "s390x_arch.h"	//XXX unused var
+    if (!(OPENSSL_s390xcap_P.stfle[2] &= S390X_CAPBIT(S390X_VX)))
+        return NULL;
+#endif
     return &ret;
 }

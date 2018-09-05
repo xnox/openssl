@@ -3042,7 +3042,7 @@ static EC_GROUP *ec_group_new_from_data(const ec_list_element curve)
         goto err;
     }
 
-    if (curve.meth != 0) {
+    if (curve.meth != 0 && curve.meth() != NULL) {
         meth = curve.meth();
         if (((group = EC_GROUP_new(meth)) == NULL) ||
             (!(group->meth->group_set_curve(group, p, a, b, ctx)))) {

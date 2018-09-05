@@ -10,6 +10,8 @@ SOURCE[../../libcrypto]=\
         curve448/curve448_tables.c curve448/eddsa.c curve448/curve448.c \
         {- $target{ec_asm_src} -}
 
+INCLUDE[ecp_nistz256.o]=..
+
 GENERATE[ecp_nistz256-x86.s]=asm/ecp_nistz256-x86.pl \
         $(PERLASM_SCHEME) $(LIB_CFLAGS) $(LIB_CPPFLAGS) $(PROCESSOR)
 
