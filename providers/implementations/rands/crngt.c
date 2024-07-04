@@ -40,7 +40,22 @@ static int crngt_get_entropy(PROV_CTX *provctx, const EVP_MD *digest,
     size_t n;
     unsigned char *p;
 
+#ifdef OPENSSL_RAND_SEED_JITTER
+    /*
+     * Directly call statically linked jitterentropy library within
+     * provider boundary to get jitter entropy.
+     */
+    p = OPENSSL_secure_malloc(CRNGT_BUFSIZ);
+    if (p == NULL)
+        return 0;
+    n = get_jitter_random_value(p, CRNGT_BUFSIZ);
+#else
+    /*
+     * Call into libcrypto's provided entropy source, usually this is
+     * OS-seed / getrandom().
+     */
     n = ossl_prov_get_entropy(provctx, &p, 0, CRNGT_BUFSIZ, CRNGT_BUFSIZ);
+#endif
     if (n == CRNGT_BUFSIZ) {
         r = EVP_Digest(p, CRNGT_BUFSIZ, md, md_size, digest, NULL);
         if (r != 0)

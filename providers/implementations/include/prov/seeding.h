@@ -15,6 +15,10 @@ size_t ossl_prov_acquire_entropy_from_tsc(RAND_POOL *pool);
 size_t ossl_prov_acquire_entropy_from_cpu(RAND_POOL *pool);
 size_t ossl_prov_acquire_entropy_from_jitter(RAND_POOL *pool);
 
+#ifdef OPENSSL_RAND_SEED_JITTER
+size_t get_jitter_random_value(unsigned char *buf, size_t len);
+#endif
+
 /*
  * External seeding functions from the core dispatch table.
  */
