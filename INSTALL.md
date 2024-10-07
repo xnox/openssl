@@ -841,6 +841,23 @@ Don't perform FIPS module Power On Self Tests.
 This option MUST be used for debugging only as it makes the FIPS provider
 non-compliant. It is useful when setting breakpoints in FIPS algorithms.
 
+### enable-fips-jitter
+
+Use the CPU Jitter library as a FIPS validated entropy source.
+
+This option will only produce a compliant FIPS provider if you have:
+
+1. independently performed the required [SP 800-90B] entropy assessments;
+2. meet the minimum required entropy as specified by [jitterentropy-library];
+3. obtain an [ESV] certificate for the [jitterentropy-library] and
+4. have had the resulting FIPS provider certified by the [CMVP].
+
+Failure to do all of these will produce a non-compliant FIPS provider.
+
+### disable-fips-fcc-params
+
+Disable support for legacy FIPS186-4 FCC params.
+
 ### enable-fuzz-libfuzzer, enable-fuzz-afl
 
 Build with support for fuzzing using either libfuzzer or AFL.
