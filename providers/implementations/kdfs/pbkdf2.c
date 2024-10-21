@@ -207,9 +207,9 @@ static int pbkdf2_lower_bound_check_passed(int saltlen, uint64_t iter,
                                            int *error, const char **desc)
 {
     if (passlen < KDF_PBKDF2_MIN_PASSWORD_LEN) {
-        *error = PROV_R_KEY_SIZE_TOO_SMALL;
+        *error = PROV_R_PASSWORD_STRENGTH_TOO_WEAK;
         if (desc != NULL)
-            *desc = "Password size";
+            *desc = "Weak password";
         return 0;
     }
     if ((keylen * 8) < KDF_PBKDF2_MIN_KEY_LEN_BITS) {
@@ -316,7 +316,7 @@ static int kdf_pbkdf2_set_ctx_params(void *vctx, const OSSL_PARAM params[])
     if ((p = OSSL_PARAM_locate_const(params, OSSL_KDF_PARAM_PASSWORD)) != NULL) {
         if (ctx->lower_bound_checks != 0
             && p->data_size < KDF_PBKDF2_MIN_PASSWORD_LEN) {
-            ERR_raise(ERR_LIB_PROV, PROV_R_INVALID_KEY_LENGTH);
+            ERR_raise(ERR_LIB_PROV, PROV_R_PASSWORD_STRENGTH_TOO_WEAK);
             return 0;
         }
         if (!pbkdf2_set_membuf(&ctx->pass, &ctx->pass_len, p))
