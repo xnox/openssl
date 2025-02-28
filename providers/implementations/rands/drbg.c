@@ -990,7 +990,7 @@ static int digest_allowed(const EVP_MD *md)
     static const char *const allowed_digests[] = {
         "SHA1",                     /* SHA 1 allowed */
         "SHA2-256", "SHA2-512",     /* non-truncated SHA2 allowed */
-        "SHA3-256", "SHA3-512",     /* non-truncated SHA3 allowed */
+	/* SHA3 usage in DRBG not yet explicitly allowed so let's block it */
     };
     size_t i;
 
