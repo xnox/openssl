@@ -1272,8 +1272,20 @@ static int rsa_digest_signverify_init(void *vprsactx, const char *mdname,
 static int rsa_digest_sign_init(void *vprsactx, const char *mdname,
                                 void *vrsa, const OSSL_PARAM params[])
 {
+    PROV_RSA_CTX *prsactx = (PROV_RSA_CTX *)vprsactx;
     if (!ossl_prov_is_running())
         return 0;
+
+#ifdef FIPS_MODULE
+    if (prsactx != NULL) {
+        /* RSA Signing with X9.31 padding is not allowed in FIPS 140-3 */
+        if (prsactx->pad_mode == RSA_X931_PADDING) {
+            rsa_x931_padding_not_allowed(prsactx);
+            return 0;
+        }
+    }
+#endif
+
     return rsa_digest_signverify_init(vprsactx, mdname, vrsa,
                                       params, EVP_PKEY_OP_SIGNMSG,
                                       "RSA Digest Sign Init");
