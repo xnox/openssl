@@ -1303,11 +1303,11 @@ static int rsa_digest_sign_update(void *vprsactx, const unsigned char *data,
         return 0;
 
 #ifdef FIPS_MODULE
-        /* RSA Signing with X9.31 padding is not allowed in FIPS 140-3 */
-        if (prsactx->pad_mode == RSA_X931_PADDING) {
-            rsa_x931_padding_not_allowed(prsactx);
-            return 0;
-        }
+    /* RSA Signing with X9.31 padding is not allowed in FIPS 140-3 */
+    if (prsactx->pad_mode == RSA_X931_PADDING) {
+        rsa_x931_padding_not_allowed(prsactx);
+        return 0;
+    }
 #endif
 
     return rsa_signverify_message_update(prsactx, data, datalen);
@@ -1325,13 +1325,13 @@ static int rsa_digest_sign_final(void *vprsactx, unsigned char *sig,
     if (prsactx->flag_sigalg)
         return 0;
 
-    #ifdef FIPS_MODULE
-        /* RSA Signing with X9.31 padding is not allowed in FIPS 140-3 */
-        if (prsactx->pad_mode == RSA_X931_PADDING) {
-            rsa_x931_padding_not_allowed(prsactx);
-            return 0;
-        }
-    #endif
+#ifdef FIPS_MODULE
+    /* RSA Signing with X9.31 padding is not allowed in FIPS 140-3 */
+    if (prsactx->pad_mode == RSA_X931_PADDING) {
+        rsa_x931_padding_not_allowed(prsactx);
+        return 0;
+    }
+#endif
 
     if (rsa_sign_message_final(prsactx, sig, siglen, sigsize))
         ok = 1;
