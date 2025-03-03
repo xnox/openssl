@@ -658,13 +658,33 @@ static int rsa_pss_saltlen_check_passed(PROV_RSA_CTX *ctx, const char *algoname,
 }
 #endif
 
+#ifdef FIPS_MODULE
+static void rsa_x931_padding_not_allowed(PROV_RSA_CTX *ctx)
+{
+    if (!OSSL_FIPS_IND_ON_UNAPPROVED(ctx, OSSL_FIPS_IND_SETTABLE2,
+                                        ctx->libctx,
+                                        "RSA Sign", "X931 Padding",
+                                        ossl_fips_config_rsa_sign_x931_disallowed)) {
+        ERR_raise(ERR_LIB_PROV,
+                    PROV_R_ILLEGAL_OR_UNSUPPORTED_PADDING_MODE);
+    }
+}
+#endif
+
 static int rsa_sign_init(void *vprsactx, void *vrsa, const OSSL_PARAM params[])
 {
     PROV_RSA_CTX *prsactx = (PROV_RSA_CTX *)vprsactx;
 
 #ifdef FIPS_MODULE
-    if (prsactx != NULL)
+    if (prsactx != NULL) {
         prsactx->verify_message = 1;
+
+        /* RSA Signing with X9.31 padding is not allowed in FIPS 140-3 */
+        if (prsactx->pad_mode == RSA_X931_PADDING) {
+            rsa_x931_padding_not_allowed(prsactx);
+            return 0;
+        }
+    }
 #endif
 
     return rsa_signverify_init(prsactx, vrsa, rsa_set_ctx_params, params,
@@ -726,6 +746,11 @@ static int rsa_sign_directly(PROV_RSA_CTX *prsactx,
 #endif
         switch (prsactx->pad_mode) {
         case RSA_X931_PADDING:
+#ifdef FIPS_MODULE
+            /* RSA Signing with X9.31 padding is not allowed in FIPS 140-3 */
+            rsa_x931_padding_not_allowed(prsactx);
+            return 0;
+#else
             if ((size_t)RSA_size(prsactx->rsa) < tbslen + 1) {
                 ERR_raise_data(ERR_LIB_PROV, PROV_R_KEY_SIZE_TOO_SMALL,
                                "RSA key size = %d, expected minimum = %d",
@@ -742,6 +767,7 @@ static int rsa_sign_directly(PROV_RSA_CTX *prsactx,
                                       sig, prsactx->rsa, RSA_X931_PADDING);
             clean_tbuf(prsactx);
             break;
+#endif
         case RSA_PKCS1_PADDING:
             {
                 unsigned int sltmp;
@@ -864,6 +890,14 @@ static int rsa_sign_message_final(void *vprsactx, unsigned char *sig,
         return 0;
     }
 
+#ifdef FIPS_MODULE
+    /* RSA Signing with X9.31 padding is not allowed in FIPS 140-3 */
+    if (prsactx->pad_mode == RSA_X931_PADDING) {
+        rsa_x931_padding_not_allowed(prsactx);
+        return 0;
+    }
+#endif
+
     /*
      * If sig is NULL then we're just finding out the sig size. Other fields
      * are ignored. Defer to rsa_sign.
@@ -899,6 +933,14 @@ static int rsa_sign(void *vprsactx, unsigned char *sig, size_t *siglen,
         ERR_raise(ERR_LIB_PROV, PROV_R_ONESHOT_CALL_OUT_OF_ORDER);
         return 0;
     }
+
+#ifdef FIPS_MODULE
+    /* RSA Signing with X9.31 padding is not allowed in FIPS 140-3 */
+    if (prsactx->pad_mode == RSA_X931_PADDING) {
+        rsa_x931_padding_not_allowed(prsactx);
+        return 0;
+    }
+#endif
 
     if (prsactx->operation == EVP_PKEY_OP_SIGNMSG) {
         /*
@@ -1248,6 +1290,14 @@ static int rsa_digest_sign_update(void *vprsactx, const unsigned char *data,
     if (prsactx->flag_sigalg)
         return 0;
 
+#ifdef FIPS_MODULE
+        /* RSA Signing with X9.31 padding is not allowed in FIPS 140-3 */
+        if (prsactx->pad_mode == RSA_X931_PADDING) {
+            rsa_x931_padding_not_allowed(prsactx);
+            return 0;
+        }
+#endif
+
     return rsa_signverify_message_update(prsactx, data, datalen);
 }
 
@@ -1262,6 +1312,14 @@ static int rsa_digest_sign_final(void *vprsactx, unsigned char *sig,
     /* Sigalg implementations shouldn't do digest_sign */
     if (prsactx->flag_sigalg)
         return 0;
+
+    #ifdef FIPS_MODULE
+        /* RSA Signing with X9.31 padding is not allowed in FIPS 140-3 */
+        if (prsactx->pad_mode == RSA_X931_PADDING) {
+            rsa_x931_padding_not_allowed(prsactx);
+            return 0;
+        }
+    #endif
 
     if (rsa_sign_message_final(prsactx, sig, siglen, sigsize))
         ok = 1;
@@ -1500,25 +1558,6 @@ static const OSSL_PARAM *rsa_gettable_ctx_params(ossl_unused void *vprsactx,
     return rsa_get_ctx_params_list;
 }
 
-#ifdef FIPS_MODULE
-static int rsa_x931_padding_allowed(PROV_RSA_CTX *ctx)
-{
-    int approved = ((ctx->operation & EVP_PKEY_OP_SIGN) == 0);
-
-    if (!approved) {
-        if (!OSSL_FIPS_IND_ON_UNAPPROVED(ctx, OSSL_FIPS_IND_SETTABLE2,
-                                         ctx->libctx,
-                                         "RSA Sign set ctx", "X931 Padding",
-                                         ossl_fips_config_rsa_sign_x931_disallowed)) {
-            ERR_raise(ERR_LIB_PROV,
-                      PROV_R_ILLEGAL_OR_UNSUPPORTED_PADDING_MODE);
-            return 0;
-        }
-    }
-    return 1;
-}
-#endif
-
 {- produce_param_decoder('rsa_set_ctx_params',
                          (['OSSL_SIGNATURE_PARAM_DIGEST',                     'digest',   'utf8_string'],
                           ['OSSL_SIGNATURE_PARAM_PROPERTIES',                 'propq',    'utf8_string'],
@@ -1652,14 +1691,9 @@ static int rsa_set_ctx_params(void *vprsactx, const OSSL_PARAM params[])
             goto cont;
         case RSA_X931_PADDING:
 #ifdef FIPS_MODULE
-            /* X9.31 only allows sizes of 1024 + 256 * s (bits) */
-            if ((RSA_bits(prsactx->rsa) & 0xFF) != 0) {
-                ERR_raise(ERR_LIB_PROV, PROV_R_INVALID_KEY_LENGTH);
-                return 0;
-            }
             /* RSA Signing with X9.31 padding is not allowed in FIPS 140-3 */
-            if (!rsa_x931_padding_allowed(prsactx))
-                return 0;
+            rsa_x931_padding_not_allowed(prsactx);
+            return 0;
 #endif
             err_extra_text = "X.931 padding not allowed with RSA-PSS";
         cont:
