@@ -681,7 +681,7 @@ static int rsa_sign_init(void *vprsactx, void *vrsa, const OSSL_PARAM params[])
 
 #ifdef FIPS_MODULE
     if (prsactx != NULL) {
-        prsactx->verify_message = 1;
+        prsactx->verify_message = 0;
 
         /* RSA Signing with X9.31 padding is not allowed in FIPS 140-3 */
         if (!rsa_x931_padding_allowed(prsactx))
@@ -910,6 +910,9 @@ static int rsa_sign_message_final(void *vprsactx, unsigned char *sig,
         if (!EVP_DigestFinal_ex(prsactx->mdctx, digest, &dlen))
             return 0;
 
+#ifdef FIPS_MODULE
+        prsactx->verify_message = 1;
+#endif
         prsactx->flag_allow_update = 0;
         prsactx->flag_allow_oneshot = 0;
         prsactx->flag_allow_final = 0;
@@ -1270,7 +1273,9 @@ static int rsa_digest_signverify_init(void *vprsactx, const char *mdname,
 static int rsa_digest_sign_init(void *vprsactx, const char *mdname,
                                 void *vrsa, const OSSL_PARAM params[])
 {
+#ifdef FIPS_MODULE
     PROV_RSA_CTX *prsactx = (PROV_RSA_CTX *)vprsactx;
+#endif
     if (!ossl_prov_is_running())
         return 0;
 
