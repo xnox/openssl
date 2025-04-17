@@ -12,6 +12,7 @@
 
 #include <openssl/err.h>
 #include <openssl/opensslconf.h>
+#include <openssl/configuration.h>
 #include <openssl/core_names.h>
 #include <openssl/provider.h>
 #include "internal/cryptlib.h"

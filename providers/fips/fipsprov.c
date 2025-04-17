@@ -8,6 +8,7 @@
  */
 
 #include <assert.h>
+#include <openssl/configuration.h>
 #include <openssl/core_dispatch.h>
 #include <openssl/core_names.h>
 #include <openssl/params.h>

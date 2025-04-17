@@ -9,6 +9,7 @@
 
 #include <string.h>
 #include <openssl/rand.h>
+#include <openssl/configuration.h>
 #include <openssl/core_dispatch.h>
 #include <openssl/e_os2.h>
 #include <openssl/params.h>
