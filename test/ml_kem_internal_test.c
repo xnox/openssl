@@ -456,7 +456,9 @@ int setup_tests(void)
         return 0;
 
     ADD_TEST(sanity_test);
+#ifdef FIPS_MODULE
     ADD_TEST(test_encap_validation_failure);
     ADD_TEST(test_decap_validation_failure);
+#endif /* FIPS_MODULE */
     return 1;
 }

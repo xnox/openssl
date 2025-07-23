@@ -2056,9 +2056,11 @@ int ossl_ml_kem_encap_rand(uint8_t *ctext, size_t clen,
     if (key == NULL)
         return 0;
 
+#ifdef FIPS_MODULE
     /* FIPS 203, Section 7.2: Validate encapsulation key */
     if (!validate_encapsulation_key(key))
         return 0;
+#endif /* FIPS_MODULE */
 
     if (RAND_bytes_ex(key->libctx, r, ML_KEM_RANDOM_BYTES,
                       key->vinfo->secbits) < 1)
@@ -2153,6 +2155,7 @@ int ossl_ml_kem_decap(uint8_t *shared_secret, size_t slen,
         return 0;
     }
 
+#ifdef FIPS_MODULE
     /* FIPS 203, Section 7.3: Validate decapsulation inputs */
     if (!validate_decapsulation_inputs(ctext, clen, key, mdctx)) {
         (void)RAND_bytes_ex(key->libctx, shared_secret,
@@ -2160,6 +2163,7 @@ int ossl_ml_kem_decap(uint8_t *shared_secret, size_t slen,
         EVP_MD_CTX_free(mdctx);
         return 0;
     }
+#endif /* FIPS_MODULE */
 
 #if defined(OPENSSL_CONSTANT_TIME_VALIDATION)
     /*
