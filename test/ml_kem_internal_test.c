@@ -264,6 +264,7 @@ err:
     return ret == 0;
 }
 
+#ifdef FIPS_MODULE
 /* Test FIPS 203 input validation - encap should fail with corrupted public key */
 static int test_encap_validation_failure(void)
 {
@@ -326,8 +327,10 @@ static int test_encap_validation_failure(void)
         goto cleanup;
 
     /* Corrupt the encoded public key to break modulus check */
-    /* We need to corrupt it in a way that passes parsing but fails ByteEncode12(ByteDecode12()) validation */
-    /* Corrupt a few bytes in the t vector portion to create invalid coefficients */
+    /*
+     * We need to corrupt it in a way that passes parsing but fails ByteEncode12(ByteDecode12())
+     * validation. Corrupt a few bytes in the t vector portion to create invalid coefficients
+     */
     encoded_public_key[10] = 0xFF;  /* Make some coefficients > 2^12 */
     encoded_public_key[11] = 0xFF;
     encoded_public_key[12] = 0xFF;
@@ -347,8 +350,8 @@ static int test_encap_validation_failure(void)
 
     /* Encap should fail due to FIPS 203 modulus validation */
     if (!TEST_false(ossl_ml_kem_encap_rand(ciphertext, v->ctext_bytes,
-                                          shared_secret, sizeof(shared_secret),
-                                          public_key)))
+                                           shared_secret, sizeof(shared_secret),
+                                           public_key)))
         goto cleanup;
 
     ret = 1;
@@ -424,8 +427,8 @@ static int test_decap_validation_failure(void)
 
     /* Generate a valid ciphertext first */
     if (!TEST_true(ossl_ml_kem_encap_rand(ciphertext, v->ctext_bytes,
-                                         shared_secret, sizeof(shared_secret),
-                                         key)))
+                                          shared_secret, sizeof(shared_secret),
+                                          key)))
         goto cleanup;
 
     /* Corrupt the stored hash in the key to break hash validation */
@@ -436,8 +439,8 @@ static int test_decap_validation_failure(void)
 
     /* Decap should fail due to FIPS 203 hash validation */
     if (!TEST_false(ossl_ml_kem_decap(shared_secret, sizeof(shared_secret),
-                                     ciphertext, v->ctext_bytes,
-                                     key)))
+                                      ciphertext, v->ctext_bytes,
+                                      key)))
         goto cleanup;
 
     ret = 1;
@@ -449,6 +452,7 @@ cleanup:
     ossl_ml_kem_key_free(key);
     return ret;
 }
+#endif /* FIPS_MODULE */
 
 int setup_tests(void)
 {
