@@ -219,9 +219,19 @@ static int ml_dsa_key_fromdata(ML_DSA_KEY *key, const OSSL_PARAM params[],
     }
 
     /* Private key seed is optional */
-    if (p.seed != NULL && include_private) {
-        if (!OSSL_PARAM_get_octet_string_ptr(p.seed, (const void **)&seed,
-                                             &seed_len))
+    if (include_private) {
+#ifdef FIPS_MODULE
+        /*
+         * FIPS 140-3: Block user-provided seed injection via OSSL_PKEY_PARAM_ML_DSA_SEED
+         * This prevents applications from bypassing FIPS DRNG requirements.
+         * Allow during self-tests for KATs that require deterministic seeds.
+         */
+        if (!ossl_fips_self_testing())
+            p.seed = NULL;
+#endif
+        if (p.seed != NULL
+            && !OSSL_PARAM_get_octet_string_ptr(p.seed, (const void **)&seed,
+                                                &seed_len))
             return 0;
         if (seed != NULL && seed_len != ML_DSA_SEED_BYTES) {
             ERR_raise(ERR_LIB_PROV, PROV_R_INVALID_SEED_LENGTH);
@@ -532,7 +542,16 @@ static int ml_dsa_gen_set_params(void *genctx, const OSSL_PARAM params[])
     if (gctx == NULL || !ml_dsa_gen_set_params_decoder(params, &p))
         return 0;
 
-    if (p.seed != NULL) {
+    if (p.seed != NULL
+#ifdef FIPS_MODULE
+        /*
+         * FIPS 140-3: Block user-provided seed injection via OSSL_PKEY_PARAM_ML_DSA_SEED
+         * This prevents applications from bypassing FIPS DRNG requirements during key generation.
+         * Allow during self-tests for KATs that require deterministic seeds.
+         */
+        && ossl_fips_self_testing()
+#endif
+        ) {
         void *vp = gctx->entropy;
         size_t len = sizeof(gctx->entropy);
 
