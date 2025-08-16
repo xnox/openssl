@@ -402,7 +402,7 @@ static int generate_key(DH *dh)
     dh->pub_key = pub_key;
     dh->priv_key = priv_key;
 #ifdef FIPS_MODULE
-    if (ossl_dh_check_pairwise(dh) <= 0) {
+    if (ossl_dh_check_pairwise(dh, 0) <= 0) {
         ossl_set_error_state(OSSL_SELF_TEST_TYPE_PCT);
         ERR_raise(ERR_LIB_PROV, DH_R_CHECK_PUBKEY_INVALID);
         goto err;
