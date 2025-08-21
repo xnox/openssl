@@ -199,12 +199,6 @@ static const unsigned char sha3_256_digest[] = {
 static const ST_KAT_DIGEST st_kat_digest_tests[] =
 {
     {
-         OSSL_SELF_TEST_DESC_MD_SHA1,
-         "SHA1",
-         ITM_STR(sha1_pt),
-         ITM(sha1_digest),
-    },
-    {
          OSSL_SELF_TEST_DESC_MD_SHA2,
          "SHA512",
          ITM_STR(sha512_pt),

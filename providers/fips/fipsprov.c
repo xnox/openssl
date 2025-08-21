@@ -279,16 +279,11 @@ static int fips_self_test(void *provctx)
  */
 
 #define FIPS_DIGESTS_COMMON()                                                  \
-    { PROV_NAMES_SHA1, FIPS_DEFAULT_PROPERTIES, ossl_sha1_functions },         \
-    { PROV_NAMES_SHA2_224, FIPS_DEFAULT_PROPERTIES, ossl_sha224_functions },   \
     { PROV_NAMES_SHA2_256, FIPS_DEFAULT_PROPERTIES, ossl_sha256_functions },   \
     { PROV_NAMES_SHA2_384, FIPS_DEFAULT_PROPERTIES, ossl_sha384_functions },   \
     { PROV_NAMES_SHA2_512, FIPS_DEFAULT_PROPERTIES, ossl_sha512_functions },   \
-    { PROV_NAMES_SHA2_512_224, FIPS_DEFAULT_PROPERTIES,                        \
-      ossl_sha512_224_functions },                                             \
     { PROV_NAMES_SHA2_512_256, FIPS_DEFAULT_PROPERTIES,                        \
       ossl_sha512_256_functions },                                             \
-    { PROV_NAMES_SHA3_224, FIPS_DEFAULT_PROPERTIES, ossl_sha3_224_functions }, \
     { PROV_NAMES_SHA3_256, FIPS_DEFAULT_PROPERTIES, ossl_sha3_256_functions }, \
     { PROV_NAMES_SHA3_384, FIPS_DEFAULT_PROPERTIES, ossl_sha3_384_functions }, \
     { PROV_NAMES_SHA3_512, FIPS_DEFAULT_PROPERTIES, ossl_sha3_512_functions }, \
@@ -361,20 +356,10 @@ static const OSSL_ALGORITHM_CAPABLE fips_ciphers[] = {
     ALG(PROV_NAMES_AES_256_WRAP_PAD_INV, ossl_aes256wrappadinv_functions),
     ALG(PROV_NAMES_AES_192_WRAP_PAD_INV, ossl_aes192wrappadinv_functions),
     ALG(PROV_NAMES_AES_128_WRAP_PAD_INV, ossl_aes128wrappadinv_functions),
-    ALGC(PROV_NAMES_AES_128_CBC_HMAC_SHA1, ossl_aes128cbc_hmac_sha1_functions,
-         ossl_cipher_capable_aes_cbc_hmac_sha1),
-    ALGC(PROV_NAMES_AES_256_CBC_HMAC_SHA1, ossl_aes256cbc_hmac_sha1_functions,
-         ossl_cipher_capable_aes_cbc_hmac_sha1),
     ALGC(PROV_NAMES_AES_128_CBC_HMAC_SHA256, ossl_aes128cbc_hmac_sha256_functions,
          ossl_cipher_capable_aes_cbc_hmac_sha256),
     ALGC(PROV_NAMES_AES_256_CBC_HMAC_SHA256, ossl_aes256cbc_hmac_sha256_functions,
          ossl_cipher_capable_aes_cbc_hmac_sha256),
-    ALGC(PROV_NAMES_AES_128_CBC_HMAC_SHA1_ETM, ossl_aes128cbc_hmac_sha1_etm_functions,
-         ossl_cipher_capable_aes_cbc_hmac_sha1_etm),
-    ALGC(PROV_NAMES_AES_192_CBC_HMAC_SHA1_ETM, ossl_aes192cbc_hmac_sha1_etm_functions,
-         ossl_cipher_capable_aes_cbc_hmac_sha1_etm),
-    ALGC(PROV_NAMES_AES_256_CBC_HMAC_SHA1_ETM, ossl_aes256cbc_hmac_sha1_etm_functions,
-         ossl_cipher_capable_aes_cbc_hmac_sha1_etm),
     ALGC(PROV_NAMES_AES_128_CBC_HMAC_SHA256_ETM, ossl_aes128cbc_hmac_sha256_etm_functions,
          ossl_cipher_capable_aes_cbc_hmac_sha256_etm),
     ALGC(PROV_NAMES_AES_192_CBC_HMAC_SHA256_ETM, ossl_aes192cbc_hmac_sha256_etm_functions,
@@ -478,33 +463,22 @@ static const OSSL_ALGORITHM fips_keyexch[] = {
 static const OSSL_ALGORITHM fips_signature[] = {
 #ifndef OPENSSL_NO_DSA
     { PROV_NAMES_DSA, FIPS_DEFAULT_PROPERTIES, ossl_dsa_signature_functions },
-    { PROV_NAMES_DSA_SHA1, FIPS_DEFAULT_PROPERTIES, ossl_dsa_sha1_signature_functions },
-    { PROV_NAMES_DSA_SHA224, FIPS_DEFAULT_PROPERTIES, ossl_dsa_sha224_signature_functions },
     { PROV_NAMES_DSA_SHA256, FIPS_DEFAULT_PROPERTIES, ossl_dsa_sha256_signature_functions },
     { PROV_NAMES_DSA_SHA384, FIPS_DEFAULT_PROPERTIES, ossl_dsa_sha384_signature_functions },
     { PROV_NAMES_DSA_SHA512, FIPS_DEFAULT_PROPERTIES, ossl_dsa_sha512_signature_functions },
-    { PROV_NAMES_DSA_SHA3_224, FIPS_DEFAULT_PROPERTIES, ossl_dsa_sha3_224_signature_functions },
     { PROV_NAMES_DSA_SHA3_256, FIPS_DEFAULT_PROPERTIES, ossl_dsa_sha3_256_signature_functions },
     { PROV_NAMES_DSA_SHA3_384, FIPS_DEFAULT_PROPERTIES, ossl_dsa_sha3_384_signature_functions },
     { PROV_NAMES_DSA_SHA3_512, FIPS_DEFAULT_PROPERTIES, ossl_dsa_sha3_512_signature_functions },
 #endif
     { PROV_NAMES_RSA, FIPS_DEFAULT_PROPERTIES, ossl_rsa_signature_functions },
-    { PROV_NAMES_RSA_SHA1, FIPS_DEFAULT_PROPERTIES,
-      ossl_rsa_sha1_signature_functions },
-    { PROV_NAMES_RSA_SHA224, FIPS_DEFAULT_PROPERTIES,
-      ossl_rsa_sha224_signature_functions },
     { PROV_NAMES_RSA_SHA256, FIPS_DEFAULT_PROPERTIES,
       ossl_rsa_sha256_signature_functions },
     { PROV_NAMES_RSA_SHA384, FIPS_DEFAULT_PROPERTIES,
       ossl_rsa_sha384_signature_functions },
     { PROV_NAMES_RSA_SHA512, FIPS_DEFAULT_PROPERTIES,
       ossl_rsa_sha512_signature_functions },
-    { PROV_NAMES_RSA_SHA512_224, FIPS_DEFAULT_PROPERTIES,
-      ossl_rsa_sha512_224_signature_functions },
     { PROV_NAMES_RSA_SHA512_256, FIPS_DEFAULT_PROPERTIES,
       ossl_rsa_sha512_256_signature_functions },
-    { PROV_NAMES_RSA_SHA3_224, FIPS_DEFAULT_PROPERTIES,
-      ossl_rsa_sha3_224_signature_functions },
     { PROV_NAMES_RSA_SHA3_256, FIPS_DEFAULT_PROPERTIES,
       ossl_rsa_sha3_256_signature_functions },
     { PROV_NAMES_RSA_SHA3_384, FIPS_DEFAULT_PROPERTIES,
@@ -525,12 +499,9 @@ static const OSSL_ALGORITHM fips_signature[] = {
       ossl_ed448ph_signature_functions },
 # endif
     { PROV_NAMES_ECDSA, FIPS_DEFAULT_PROPERTIES, ossl_ecdsa_signature_functions },
-    { PROV_NAMES_ECDSA_SHA1, FIPS_DEFAULT_PROPERTIES, ossl_ecdsa_sha1_signature_functions },
-    { PROV_NAMES_ECDSA_SHA224, FIPS_DEFAULT_PROPERTIES, ossl_ecdsa_sha224_signature_functions },
     { PROV_NAMES_ECDSA_SHA256, FIPS_DEFAULT_PROPERTIES, ossl_ecdsa_sha256_signature_functions },
     { PROV_NAMES_ECDSA_SHA384, FIPS_DEFAULT_PROPERTIES, ossl_ecdsa_sha384_signature_functions },
     { PROV_NAMES_ECDSA_SHA512, FIPS_DEFAULT_PROPERTIES, ossl_ecdsa_sha512_signature_functions },
-    { PROV_NAMES_ECDSA_SHA3_224, FIPS_DEFAULT_PROPERTIES, ossl_ecdsa_sha3_224_signature_functions },
     { PROV_NAMES_ECDSA_SHA3_256, FIPS_DEFAULT_PROPERTIES, ossl_ecdsa_sha3_256_signature_functions },
     { PROV_NAMES_ECDSA_SHA3_384, FIPS_DEFAULT_PROPERTIES, ossl_ecdsa_sha3_384_signature_functions },
     { PROV_NAMES_ECDSA_SHA3_512, FIPS_DEFAULT_PROPERTIES, ossl_ecdsa_sha3_512_signature_functions },
