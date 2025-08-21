@@ -315,6 +315,7 @@ static const OSSL_ALGORITHM_CAPABLE fips_ciphers[] = {
     ALG(PROV_NAMES_AES_256_ECB, ossl_aes256ecb_functions),
     ALG(PROV_NAMES_AES_192_ECB, ossl_aes192ecb_functions),
     ALG(PROV_NAMES_AES_128_ECB, ossl_aes128ecb_functions),
+    /* NB! cut-off of internal-only ciphers */
     ALG(PROV_NAMES_AES_256_CBC, ossl_aes256cbc_functions),
     ALG(PROV_NAMES_AES_192_CBC, ossl_aes192cbc_functions),
     ALG(PROV_NAMES_AES_128_CBC, ossl_aes128cbc_functions),
@@ -692,7 +693,8 @@ static const OSSL_ALGORITHM *fips_query(void *provctx, int operation_id,
     case OSSL_OP_DIGEST:
         return fips_digests;
     case OSSL_OP_CIPHER:
-        return exported_fips_ciphers;
+        /* In python syntax: return exported_fips_ciphers[3:] */
+        return exported_fips_ciphers+3;
     case OSSL_OP_MAC:
         return fips_macs;
     case OSSL_OP_KDF:
@@ -724,6 +726,8 @@ static const OSSL_ALGORITHM *fips_query_internal(void *provctx, int operation_id
         return NULL;
 
     switch (operation_id) {
+    case OSSL_OP_CIPHER:
+        return exported_fips_ciphers;
     case OSSL_OP_DIGEST:
         return fips_digests_internal;
     case OSSL_OP_MAC:
