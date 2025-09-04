@@ -442,10 +442,13 @@ int sample_scalar(scalar *out, EVP_MD_CTX *mdctx)
     uint8_t *endin = buf + sizeof(buf);
     uint16_t d;
     uint8_t b1, b2, b3;
+    int ret = 1;
 
     do {
-        if (!EVP_DigestSqueeze(mdctx, in = buf, sizeof(buf)))
-            return 0;
+        if (!EVP_DigestSqueeze(mdctx, in = buf, sizeof(buf))) {
+            ret = 0;
+            goto end;
+        }
         do {
             b1 = *in++;
             b2 = *in++;
@@ -461,7 +464,12 @@ int sample_scalar(scalar *out, EVP_MD_CTX *mdctx)
                 *curr++ = d;
         } while (in < endin);
     } while (curr < endout);
-    return 1;
+
+ end:
+    OPENSSL_cleanse(buf, sizeof(buf));
+    d = 0;
+    b1 = b2 = b3 = 0;
+    return ret;
 }
 
 /*-
@@ -475,8 +483,11 @@ static __owur uint16_t reduce_once(uint16_t x)
 {
     const uint16_t subtracted = x - kPrime;
     uint16_t mask = constish_time_non_zero(subtracted >> 15);
+    uint16_t result = (mask & x) | (~mask & subtracted);
 
-    return (mask & x) | (~mask & subtracted);
+    /* Cleanse intermediate values */
+    mask = 0;
+    return result;
 }
 
 /*
@@ -490,8 +501,13 @@ static __owur uint16_t reduce(uint32_t x)
     uint64_t product = (uint64_t)x * kBarrettMultiplier;
     uint32_t quotient = (uint32_t)(product >> kBarrettShift);
     uint32_t remainder = x - quotient * kPrime;
+    uint16_t result = reduce_once(remainder);
 
-    return reduce_once(remainder);
+    /* Cleanse intermediate values */
+    product = 0;
+    quotient = 0;
+    remainder = 0;
+    return result;
 }
 
 /* Multiply a scalar by a constant. */
@@ -503,6 +519,9 @@ static void scalar_mult_const(scalar *s, uint16_t a)
         tmp = reduce(*curr * a);
         *curr++ = tmp;
     } while (curr < end);
+
+    /* Cleanse intermediate values */
+    tmp = 0;
 }
 
 /*-
@@ -519,13 +538,15 @@ static void scalar_ntt(scalar *s)
     const uint16_t *roots = kNTTRoots;
     uint16_t *end = s->c + DEGREE;
     int offset = DEGREE / 2;
+    uint16_t even = 0, odd = 0;
+    uint32_t zeta = 0;
 
     do {
         uint16_t *curr = s->c, *peer;
 
         do {
-            uint16_t *pause = curr + offset, even, odd;
-            uint32_t zeta = *++roots;
+            uint16_t *pause = curr + offset;
+            zeta = *++roots;
 
             peer = pause;
             do {
@@ -536,6 +557,11 @@ static void scalar_ntt(scalar *s)
             } while (curr < pause);
         } while ((curr = peer) < end);
     } while ((offset >>= 1) >= 2);
+
+    /* Cleanse intermediate values */
+    even = 0;
+    odd = 0;
+    zeta = 0;
 }
 
 /*-
@@ -551,13 +577,15 @@ static void scalar_inverse_ntt(scalar *s)
     const uint16_t *roots = kInverseNTTRoots;
     uint16_t *end = s->c + DEGREE;
     int offset = 2;
+    uint16_t even = 0, odd = 0;
+    uint32_t zeta = 0;
 
     do {
         uint16_t *curr = s->c, *peer;
 
         do {
-            uint16_t *pause = curr + offset, even, odd;
-            uint32_t zeta = *++roots;
+            uint16_t *pause = curr + offset;
+            zeta = *++roots;
 
             peer = pause;
             do {
@@ -569,6 +597,11 @@ static void scalar_inverse_ntt(scalar *s)
         } while ((curr = peer) < end);
     } while ((offset <<= 1) < DEGREE);
     scalar_mult_const(s, kInverseDegree);
+
+    /* Cleanse intermediate values */
+    even = 0;
+    odd = 0;
+    zeta = 0;
 }
 
 /* Addition updating the LHS scalar in-place. */
@@ -606,15 +639,23 @@ static void scalar_mult(scalar *out, const scalar *lhs,
     uint16_t *curr = out->c, *end = curr + DEGREE;
     const uint16_t *lc = lhs->c, *rc = rhs->c;
     const uint16_t *roots = kModRoots;
+    uint32_t l0 = 0, l1 = 0, r0 = 0, r1 = 0, zetapow = 0;
 
     do {
-        uint32_t l0 = *lc++, r0 = *rc++;
-        uint32_t l1 = *lc++, r1 = *rc++;
-        uint32_t zetapow = *roots++;
+        l0 = *lc++; r0 = *rc++;
+        l1 = *lc++; r1 = *rc++;
+        zetapow = *roots++;
 
         *curr++ = reduce(l0 * r0 + reduce(l1 * r1) * zetapow);
         *curr++ = reduce(l0 * r1 + l1 * r0);
     } while (curr < end);
+
+    /* Cleanse intermediate values */
+    l0 = 0;
+    l1 = 0;
+    r0 = 0;
+    r1 = 0;
+    zetapow = 0;
 }
 
 /* Above, but add the result to an existing scalar */
@@ -625,17 +666,25 @@ void scalar_mult_add(scalar *out, const scalar *lhs,
     uint16_t *curr = out->c, *end = curr + DEGREE;
     const uint16_t *lc = lhs->c, *rc = rhs->c;
     const uint16_t *roots = kModRoots;
+    uint32_t l0 = 0, l1 = 0, r0 = 0, r1 = 0, zetapow = 0;
 
     do {
-        uint32_t l0 = *lc++, r0 = *rc++;
-        uint32_t l1 = *lc++, r1 = *rc++;
+        l0 = *lc++; r0 = *rc++;
+        l1 = *lc++; r1 = *rc++;
         uint16_t *c0 = curr++;
         uint16_t *c1 = curr++;
-        uint32_t zetapow = *roots++;
+        zetapow = *roots++;
 
         *c0 = reduce(*c0 + l0 * r0 + reduce(l1 * r1) * zetapow);
         *c1 = reduce(*c1 + l0 * r1 + l1 * r0);
     } while (curr < end);
+
+    /* Cleanse intermediate values */
+    l0 = 0;
+    l1 = 0;
+    r0 = 0;
+    r1 = 0;
+    zetapow = 0;
 }
 
 /*-
@@ -645,7 +694,7 @@ void scalar_mult_add(scalar *out, const scalar *lhs,
 static void scalar_encode(uint8_t *out, const scalar *s, int bits)
 {
     const uint16_t *curr = s->c, *end = curr + DEGREE;
-    uint64_t accum = 0, element;
+    uint64_t accum = 0, element = 0;
     int used = 0;
 
     do {
@@ -663,6 +712,10 @@ static void scalar_encode(uint8_t *out, const scalar *s, int bits)
             used = 0;
         }
     } while (curr < end);
+
+    /* Cleanse intermediate values */
+    accum = 0;
+    element = 0;
 }
 
 /*
@@ -671,7 +724,7 @@ static void scalar_encode(uint8_t *out, const scalar *s, int bits)
 static void scalar_encode_1(uint8_t out[DEGREE / 8], const scalar *s)
 {
     int i, j;
-    uint8_t out_byte;
+    uint8_t out_byte = 0;
 
     for (i = 0; i < DEGREE; i += 8) {
         out_byte = 0;
@@ -680,6 +733,9 @@ static void scalar_encode_1(uint8_t out[DEGREE / 8], const scalar *s)
         *out = out_byte;
         out++;
     }
+
+    /* Cleanse intermediate values */
+    out_byte = 0;
 }
 
 /*-
@@ -1431,6 +1487,7 @@ int genkey(const uint8_t seed[ML_KEM_SEED_BYTES],
  end:
     OPENSSL_cleanse((void *)augmented_seed, ML_KEM_RANDOM_BYTES);
     OPENSSL_cleanse((void *)sigma, ML_KEM_RANDOM_BYTES);
+    counter = 0;
     if (ret == 0) {
         ERR_raise_data(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR,
                        "internal error while generating %s private key",
@@ -2045,9 +2102,9 @@ static int validate_encapsulation_key(const ML_KEM_KEY *key)
     ret = 1;
 
 cleanup:
-    OPENSSL_free(pubkey_enc);
-    OPENSSL_free(test_buf);
-    OPENSSL_free(decoded_t);
+    OPENSSL_clear_free(pubkey_enc, vinfo->pubkey_bytes);
+    OPENSSL_clear_free(test_buf, vector_bytes_384k);
+    OPENSSL_clear_free(decoded_t, vinfo->rank * sizeof(scalar));
     return ret;
 }
 #endif /* FIPS_MODULE */
