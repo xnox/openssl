@@ -447,7 +447,7 @@ int sample_scalar(scalar *out, EVP_MD_CTX *mdctx)
     do {
         if (!EVP_DigestSqueeze(mdctx, in = buf, sizeof(buf))) {
             ret = 0;
-            goto end;
+            goto scalar_end;
         }
         do {
             b1 = *in++;
@@ -465,7 +465,7 @@ int sample_scalar(scalar *out, EVP_MD_CTX *mdctx)
         } while (in < endin);
     } while (curr < endout);
 
- end:
+scalar_end:
     OPENSSL_cleanse(buf, sizeof(buf));
     d = 0;
     b1 = b2 = b3 = 0;
