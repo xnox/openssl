@@ -36,7 +36,7 @@ This can be set when using EVP_PKEY_encapsulate_init().
 
 A getter that returns 1 if the operation is FIPS approved, or 0 otherwise.
 For ML-KEM the indicator changes to 0 when the "ikme" parameter is set as
-external IKME is not allowed in FIPS approved-only mode.
+providing external IKME is not FIPS approved.
 
 This parameter is also described in L<provider-kem(7)>.
 
