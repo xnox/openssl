@@ -467,8 +467,10 @@ int sample_scalar(scalar *out, EVP_MD_CTX *mdctx)
 
 scalar_end:
     OPENSSL_cleanse(buf, sizeof(buf));
-    d = 0;
-    b1 = b2 = b3 = 0;
+    OPENSSL_cleanse(d, sizeof(d));
+    OPENSSL_cleanse(b1, sizeof(b1));
+    OPENSSL_cleanse(b2, sizeof(b2));
+    OPENSSL_cleanse(b3, sizeof(b3));
     return ret;
 }
 
