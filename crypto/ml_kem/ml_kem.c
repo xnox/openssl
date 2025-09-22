@@ -467,10 +467,10 @@ int sample_scalar(scalar *out, EVP_MD_CTX *mdctx)
 
 scalar_end:
     OPENSSL_cleanse(buf, sizeof(buf));
-    OPENSSL_cleanse(d, sizeof(d));
-    OPENSSL_cleanse(b1, sizeof(b1));
-    OPENSSL_cleanse(b2, sizeof(b2));
-    OPENSSL_cleanse(b3, sizeof(b3));
+    OPENSSL_cleanse(&d, sizeof(d));
+    OPENSSL_cleanse(&b1, sizeof(b1));
+    OPENSSL_cleanse(&b2, sizeof(b2));
+    OPENSSL_cleanse(&b3, sizeof(b3));
     return ret;
 }
 
@@ -488,7 +488,7 @@ static __owur uint16_t reduce_once(uint16_t x)
     uint16_t result = (mask & x) | (~mask & subtracted);
 
     /* Cleanse intermediate values */
-    mask = 0;
+    OPENSSL_cleanse(&mask, sizeof(mask));
     return result;
 }
 
@@ -506,9 +506,9 @@ static __owur uint16_t reduce(uint32_t x)
     uint16_t result = reduce_once(remainder);
 
     /* Cleanse intermediate values */
-    product = 0;
-    quotient = 0;
-    remainder = 0;
+    OPENSSL_cleanse(&product, sizeof(product));
+    OPENSSL_cleanse(&quotient, sizeof(quotient));
+    OPENSSL_cleanse(&remainder, sizeof(remainder));
     return result;
 }
 
@@ -523,7 +523,7 @@ static void scalar_mult_const(scalar *s, uint16_t a)
     } while (curr < end);
 
     /* Cleanse intermediate values */
-    tmp = 0;
+    OPENSSL_cleanse(&tmp, sizeof(tmp));
 }
 
 /*-
@@ -561,9 +561,9 @@ static void scalar_ntt(scalar *s)
     } while ((offset >>= 1) >= 2);
 
     /* Cleanse intermediate values */
-    even = 0;
-    odd = 0;
-    zeta = 0;
+    OPENSSL_cleanse(&even, sizeof(even));
+    OPENSSL_cleanse(&odd, sizeof(odd));
+    OPENSSL_cleanse(&zeta, sizeof(zeta));
 }
 
 /*-
@@ -601,9 +601,9 @@ static void scalar_inverse_ntt(scalar *s)
     scalar_mult_const(s, kInverseDegree);
 
     /* Cleanse intermediate values */
-    even = 0;
-    odd = 0;
-    zeta = 0;
+    OPENSSL_cleanse(&even, sizeof(even));
+    OPENSSL_cleanse(&odd, sizeof(odd));
+    OPENSSL_cleanse(&zeta, sizeof(zeta));
 }
 
 /* Addition updating the LHS scalar in-place. */
@@ -653,11 +653,11 @@ static void scalar_mult(scalar *out, const scalar *lhs,
     } while (curr < end);
 
     /* Cleanse intermediate values */
-    l0 = 0;
-    l1 = 0;
-    r0 = 0;
-    r1 = 0;
-    zetapow = 0;
+    OPENSSL_cleanse(&l0, sizeof(l0));
+    OPENSSL_cleanse(&l1, sizeof(l1));
+    OPENSSL_cleanse(&r0, sizeof(r0));
+    OPENSSL_cleanse(&r1, sizeof(r1));
+    OPENSSL_cleanse(&zetapow, sizeof(zetapow));
 }
 
 /* Above, but add the result to an existing scalar */
@@ -682,11 +682,11 @@ void scalar_mult_add(scalar *out, const scalar *lhs,
     } while (curr < end);
 
     /* Cleanse intermediate values */
-    l0 = 0;
-    l1 = 0;
-    r0 = 0;
-    r1 = 0;
-    zetapow = 0;
+    OPENSSL_cleanse(&l0, sizeof(l0));
+    OPENSSL_cleanse(&l1, sizeof(l1));
+    OPENSSL_cleanse(&r0, sizeof(r0));
+    OPENSSL_cleanse(&r1, sizeof(r1));
+    OPENSSL_cleanse(&zetapow, sizeof(zetapow));
 }
 
 /*-
@@ -716,8 +716,8 @@ static void scalar_encode(uint8_t *out, const scalar *s, int bits)
     } while (curr < end);
 
     /* Cleanse intermediate values */
-    accum = 0;
-    element = 0;
+    OPENSSL_cleanse(&accum, sizeof(accum));
+    OPENSSL_cleanse(&element, sizeof(element));
 }
 
 /*
@@ -737,7 +737,7 @@ static void scalar_encode_1(uint8_t out[DEGREE / 8], const scalar *s)
     }
 
     /* Cleanse intermediate values */
-    out_byte = 0;
+    OPENSSL_cleanse(&out_byte, sizeof(out_byte));
 }
 
 /*-
@@ -1489,7 +1489,7 @@ int genkey(const uint8_t seed[ML_KEM_SEED_BYTES],
  end:
     OPENSSL_cleanse((void *)augmented_seed, ML_KEM_RANDOM_BYTES);
     OPENSSL_cleanse((void *)sigma, ML_KEM_RANDOM_BYTES);
-    counter = 0;
+    OPENSSL_cleanse(&counter, sizeof(counter));
     if (ret == 0) {
         ERR_raise_data(ERR_LIB_CRYPTO, ERR_R_INTERNAL_ERROR,
                        "internal error while generating %s private key",
