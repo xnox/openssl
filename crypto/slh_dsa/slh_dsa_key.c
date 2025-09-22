@@ -131,7 +131,7 @@ void ossl_slh_dsa_key_free(SLH_DSA_KEY *key)
         return;
 
     slh_dsa_key_hash_cleanup(key);
-    OPENSSL_cleanse(&key->priv, sizeof(key->priv) >> 1);
+    OPENSSL_cleanse(&key->priv, sizeof(key->priv));
     OPENSSL_free(key);
 }
 

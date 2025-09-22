@@ -838,6 +838,8 @@ static void ml_kem_gen_cleanup(void *vgctx)
 
     if (gctx->seed != NULL)
         OPENSSL_cleanse(gctx->seed, ML_KEM_RANDOM_BYTES);
+    /* Always zeroize the seedbuf which may contain sensitive data */
+    OPENSSL_cleanse(gctx->seedbuf, sizeof(gctx->seedbuf));
     OPENSSL_free(gctx->propq);
     OPENSSL_free(gctx);
 }

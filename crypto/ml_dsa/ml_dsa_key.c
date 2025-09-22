@@ -161,10 +161,15 @@ void ossl_ml_dsa_key_reset(ML_DSA_KEY *key)
         vector_init(&key->s2, NULL, 0);
         vector_init(&key->t0, NULL, 0);
     }
-    /* The |t1| vector is public and allocated separately */
+    /* The |t1| vector is public and allocated separately - zeroize before freeing */
+    vector_zero(&key->t1);
     vector_free(&key->t1);
+    /* Zeroize fixed-size arrays containing sensitive data */
+    OPENSSL_cleanse(key->rho, sizeof(key->rho));
+    OPENSSL_cleanse(key->tr, sizeof(key->tr));
     OPENSSL_cleanse(key->K, sizeof(key->K));
-    OPENSSL_free(key->pub_encoding);
+    /* Zeroize pub_encoding before freeing */
+    OPENSSL_clear_free(key->pub_encoding, key->params->pk_len);
     key->pub_encoding = NULL;
     if (key->priv_encoding != NULL)
         OPENSSL_secure_clear_free(key->priv_encoding, key->params->sk_len);
