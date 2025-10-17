@@ -34,6 +34,18 @@ static const char FIPS_DEFAULT_PROPERTIES[] = "provider=fips,fips=yes";
 static const char FIPS_UNAPPROVED_PROPERTIES[] = "provider=fips,fips=no";
 
 /*
+ * Offsets for internal-only algorithms at the start of algorithm tables.
+ * Public queries skip these by adding the offset to the table pointer.
+ */
+#if !defined(OPENSSL_NO_EC) && !defined(OPENSSL_NO_ECX)
+# define FIPS_KEYEXCH_EXTERNAL_OFFSET 2  /* x25519, x448 */
+# define FIPS_KEYMGMT_EXTERNAL_OFFSET 2  /* x25519, x448 */
+#else
+# define FIPS_KEYEXCH_EXTERNAL_OFFSET 0
+# define FIPS_KEYMGMT_EXTERNAL_OFFSET 0
+#endif
+
+/*
  * Forward declarations to ensure that interface functions are correctly
  * defined.
  */
@@ -445,15 +457,17 @@ static const OSSL_ALGORITHM fips_rands[] = {
 };
 
 static const OSSL_ALGORITHM fips_keyexch[] = {
+    /* Internal-only algorithms - used by hybrid modes */
+#if !defined(OPENSSL_NO_EC) && !defined(OPENSSL_NO_ECX)
+    { PROV_NAMES_X25519, FIPS_UNAPPROVED_PROPERTIES, ossl_x25519_keyexch_functions },
+    { PROV_NAMES_X448, FIPS_UNAPPROVED_PROPERTIES, ossl_x448_keyexch_functions },
+#endif
+    /* Public algorithms start here (offset by FIPS_KEYEXCH_EXTERNAL_OFFSET) */
 #ifndef OPENSSL_NO_DH
     { PROV_NAMES_DH, FIPS_DEFAULT_PROPERTIES, ossl_dh_keyexch_functions },
 #endif
 #ifndef OPENSSL_NO_EC
     { PROV_NAMES_ECDH, FIPS_DEFAULT_PROPERTIES, ossl_ecdh_keyexch_functions },
-# ifndef OPENSSL_NO_ECX
-    { PROV_NAMES_X25519, FIPS_UNAPPROVED_PROPERTIES, ossl_x25519_keyexch_functions },
-    { PROV_NAMES_X448, FIPS_UNAPPROVED_PROPERTIES, ossl_x448_keyexch_functions },
-# endif
 #endif
     { PROV_NAMES_TLS1_PRF, FIPS_DEFAULT_PROPERTIES,
       ossl_kdf_tls1_prf_keyexch_functions },
@@ -574,6 +588,14 @@ static const OSSL_ALGORITHM fips_asym_kem[] = {
 };
 
 static const OSSL_ALGORITHM fips_keymgmt[] = {
+    /* Internal-only algorithms - used by hybrid modes */
+#if !defined(OPENSSL_NO_EC) && !defined(OPENSSL_NO_ECX)
+    { PROV_NAMES_X25519, FIPS_UNAPPROVED_PROPERTIES, ossl_x25519_keymgmt_functions,
+      PROV_DESCS_X25519 },
+    { PROV_NAMES_X448, FIPS_UNAPPROVED_PROPERTIES, ossl_x448_keymgmt_functions,
+      PROV_DESCS_X448 },
+#endif
+    /* Public algorithms start here (offset by FIPS_KEYMGMT_EXTERNAL_OFFSET) */
 #ifndef OPENSSL_NO_DH
     { PROV_NAMES_DH, FIPS_DEFAULT_PROPERTIES, ossl_dh_keymgmt_functions,
       PROV_DESCS_DH },
@@ -592,10 +614,6 @@ static const OSSL_ALGORITHM fips_keymgmt[] = {
     { PROV_NAMES_EC, FIPS_DEFAULT_PROPERTIES, ossl_ec_keymgmt_functions,
       PROV_DESCS_EC },
 # ifndef OPENSSL_NO_ECX
-    { PROV_NAMES_X25519, FIPS_UNAPPROVED_PROPERTIES, ossl_x25519_keymgmt_functions,
-      PROV_DESCS_X25519 },
-    { PROV_NAMES_X448, FIPS_UNAPPROVED_PROPERTIES, ossl_x448_keymgmt_functions,
-      PROV_DESCS_X448 },
     { PROV_NAMES_ED25519, FIPS_DEFAULT_PROPERTIES, ossl_ed25519_keymgmt_functions,
       PROV_DESCS_ED25519 },
     { PROV_NAMES_ED448, FIPS_DEFAULT_PROPERTIES, ossl_ed448_keymgmt_functions,
@@ -702,9 +720,9 @@ static const OSSL_ALGORITHM *fips_query(void *provctx, int operation_id,
     case OSSL_OP_RAND:
         return fips_rands;
     case OSSL_OP_KEYMGMT:
-        return fips_keymgmt;
+        return fips_keymgmt + FIPS_KEYMGMT_EXTERNAL_OFFSET;
     case OSSL_OP_KEYEXCH:
-        return fips_keyexch;
+        return fips_keyexch + FIPS_KEYEXCH_EXTERNAL_OFFSET;
     case OSSL_OP_SIGNATURE:
         return fips_signature;
     case OSSL_OP_ASYM_CIPHER:
@@ -734,6 +752,10 @@ static const OSSL_ALGORITHM *fips_query_internal(void *provctx, int operation_id
         return fips_macs_internal;
     case OSSL_OP_KDF:
         return fips_kdfs_internal;
+    case OSSL_OP_KEYEXCH:
+        return fips_keyexch;
+    case OSSL_OP_KEYMGMT:
+        return fips_keymgmt;
     }
 
     return fips_query(provctx, operation_id, no_cache);
