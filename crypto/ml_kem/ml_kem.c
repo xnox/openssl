@@ -1666,13 +1666,16 @@ ossl_ml_kem_key_reset(ML_KEM_KEY *key)
      * Cleanse any sensitive data:
      * - The private vector |s| is immediately followed by the FO failure
      *   secret |z|, and seed |d|, we can cleanse all three in one call.
+     * - The rho_pkhash buffer contains |rho| and |pkhash|, which are
+     *   sensitive public key components that must be zeroized.
      */
     if (key->t != NULL) {
         if (ossl_ml_kem_have_prvkey(key))
             OPENSSL_secure_clear_free(key->s, key->vinfo->prvalloc);
         OPENSSL_clear_free(key->t, key->vinfo->puballoc);
     }
-    key->d = key->z = key->seedbuf = key->encoded_dk =
+    OPENSSL_cleanse(key->rho_pkhash, sizeof(key->rho_pkhash));
+    key->d = key->z = key->rho = key->pkhash = key->seedbuf = key->encoded_dk =
         (uint8_t *)(key->s = key->m = key->t = NULL);
 }
 
