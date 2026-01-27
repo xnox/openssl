@@ -28,6 +28,17 @@ OpenSSL Releases
 OpenSSL 3.5
 -----------
 
+### Changes between 3.5.5 and 3.5.5+1
+
+ * Fixed loss of key agreement group tuple structure when the `DEFAULT` keyword
+   is used in the server-side configuration of the key-agreement group list.
+   This could result in accepting a less preferred than intended client
+   keyshare.
+
+   ([CVE-2026-2673])
+
+   *Viktor Dukhovni*
+
 ### Changes between 3.5.4 and 3.5.5 [27 Jan 2026]
 
  * Fixed Improper validation of PBMAC1 parameters in PKCS#12 MAC verification.
@@ -21607,6 +21618,7 @@ ndif
 
 <!-- Links -->
 
+[CVE-2026-2673]: https://www.openssl.org/news/vulnerabilities.html#CVE-2026-2673
 [CVE-2026-22796]: https://www.openssl.org/news/vulnerabilities.html#CVE-2026-22796
 [CVE-2026-22795]: https://www.openssl.org/news/vulnerabilities.html#CVE-2026-22795
 [CVE-2025-69421]: https://www.openssl.org/news/vulnerabilities.html#CVE-2025-69421
