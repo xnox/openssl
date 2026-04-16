@@ -38,8 +38,8 @@ static const char FIPS_UNAPPROVED_PROPERTIES[] = "provider=fips,fips=no";
  * Public queries skip these by adding the offset to the table pointer.
  */
 #if !defined(OPENSSL_NO_EC) && !defined(OPENSSL_NO_ECX)
-# define FIPS_KEYEXCH_EXTERNAL_OFFSET 2  /* x25519, x448 */
-# define FIPS_KEYMGMT_EXTERNAL_OFFSET 2  /* x25519, x448 */
+# define FIPS_KEYEXCH_EXTERNAL_OFFSET 1  /* x25519 */
+# define FIPS_KEYMGMT_EXTERNAL_OFFSET 1  /* x25519 */
 #else
 # define FIPS_KEYEXCH_EXTERNAL_OFFSET 0
 # define FIPS_KEYMGMT_EXTERNAL_OFFSET 0
@@ -460,7 +460,6 @@ static const OSSL_ALGORITHM fips_keyexch[] = {
     /* Internal-only algorithms - used by hybrid modes */
 #if !defined(OPENSSL_NO_EC) && !defined(OPENSSL_NO_ECX)
     { PROV_NAMES_X25519, FIPS_UNAPPROVED_PROPERTIES, ossl_x25519_keyexch_functions },
-    { PROV_NAMES_X448, FIPS_UNAPPROVED_PROPERTIES, ossl_x448_keyexch_functions },
 #endif
     /* Public algorithms start here (offset by FIPS_KEYEXCH_EXTERNAL_OFFSET) */
 #ifndef OPENSSL_NO_DH
@@ -577,7 +576,6 @@ static const OSSL_ALGORITHM fips_asym_kem[] = {
     { PROV_NAMES_ML_KEM_1024, FIPS_DEFAULT_PROPERTIES, ossl_ml_kem_asym_kem_functions },
 # if !defined(OPENSSL_NO_ECX)
     { "X25519MLKEM768", FIPS_DEFAULT_PROPERTIES, ossl_mlx_kem_asym_kem_functions },
-    { "X448MLKEM1024", FIPS_DEFAULT_PROPERTIES, ossl_mlx_kem_asym_kem_functions },
 # endif
 # if !defined(OPENSSL_NO_EC)
     { "SecP256r1MLKEM768", FIPS_DEFAULT_PROPERTIES, ossl_mlx_kem_asym_kem_functions },
@@ -592,8 +590,6 @@ static const OSSL_ALGORITHM fips_keymgmt[] = {
 #if !defined(OPENSSL_NO_EC) && !defined(OPENSSL_NO_ECX)
     { PROV_NAMES_X25519, FIPS_UNAPPROVED_PROPERTIES, ossl_x25519_keymgmt_functions,
       PROV_DESCS_X25519 },
-    { PROV_NAMES_X448, FIPS_UNAPPROVED_PROPERTIES, ossl_x448_keymgmt_functions,
-      PROV_DESCS_X448 },
 #endif
     /* Public algorithms start here (offset by FIPS_KEYMGMT_EXTERNAL_OFFSET) */
 #ifndef OPENSSL_NO_DH
@@ -652,8 +648,6 @@ static const OSSL_ALGORITHM fips_keymgmt[] = {
 # if !defined(OPENSSL_NO_ECX)
     { PROV_NAMES_X25519MLKEM768, FIPS_DEFAULT_PROPERTIES, ossl_mlx_x25519_kem_kmgmt_functions,
       PROV_DESCS_X25519MLKEM768 },
-    { PROV_NAMES_X448MLKEM1024, FIPS_DEFAULT_PROPERTIES, ossl_mlx_x448_kem_kmgmt_functions,
-      PROV_DESCS_X448MLKEM1024 },
 # endif
 # if !defined(OPENSSL_NO_EC)
     { PROV_NAMES_SecP256r1MLKEM768, FIPS_DEFAULT_PROPERTIES, ossl_mlx_p256_kem_kmgmt_functions,
