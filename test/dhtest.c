@@ -25,6 +25,8 @@
 #include <openssl/err.h>
 #include <openssl/obj_mac.h>
 #include <openssl/core_names.h>
+#include <openssl/evp.h>
+#include <openssl/param_build.h>
 #include "testutil.h"
 
 #ifndef OPENSSL_NO_DH
@@ -933,6 +935,163 @@ static int dh_load_pkcs3_namedgroup_privlen_test(void)
     return ret;
 }
 
+/*
+ * Regression test for CVE-2026-42770.
+ *
+ * FFC/DH peer public key validation uses the *peer's* q value for the
+ * subgroup membership check (Y^q == 1 mod p) rather than the local key's q.
+ * dh_match_params() then matched the peer's domain parameters against the
+ * local private key's parameters but, before the fix, never compared q.
+ *
+ * A malicious peer can therefore present an X9.42 (DHX) key carrying the
+ * victim's genuine p and g, but a forged q' = r (a small prime factor of the
+ * cofactor (p-1)/q) together with a public value Y of order r. Such a key
+ * passes the membership check (Y^r == 1) and, prior to the fix, also passed
+ * the parameter match because q was ignored. The shared secret then takes
+ * only r distinct values, leaking priv mod r (Lim-Lee / small-subgroup
+ * confinement). Repeating over the small prime factors of the cofactor and
+ * combining via CRT recovers the victim's private key.
+ *
+ * The values below were generated so that p - 1 = q * cofactor with the
+ * cofactor divisible by the small prime r = 11. G generates the legitimate
+ * order-q subgroup; YPEER has order r and is therefore NOT in that subgroup.
+ *
+ * The fix makes EVP_PKEY_derive_set_peer() reject the malicious peer because
+ * its q (= r) does not match the victim key's q. This test confirms that
+ * rejection: it FAILS against the vulnerable code (set_peer succeeds) and
+ * PASSES against the fixed code (set_peer fails). A control derivation with a
+ * legitimate same-parameter peer must keep working in both cases.
+ */
+static const char *dhx_p_hex = "01bceb762bf74e546ef4ee9a0947016a2d0eaaed93658c95f245567ae1c316d1"
+                               "b8e4c68c4bcdee84254ea725a0c88399fdf4e4f4422b0c9762ce12b351824e1b"
+                               "b7332a05d8744b405277e3a7a402b4a9b828984dc6716c19cf83b3dc8739a834"
+                               "4db98f86ec92ae5da379d9406b0881a1075c8c0ebad22c1a5a30090acf121339";
+static const char *dhx_q_hex = "24e36a8446849a6d18d27ecb041578302b97bef184964664e40b05cae9b3c0e5";
+static const char *dhx_g_hex = "7cabf8b76b14b231054f440677b6e998c0f797eb169677f33ee3cbddf51386df"
+                               "002f7c82c508e59e95f71c25b153cc279cb898495ff2e1942699c0a4c8d41800"
+                               "e81b64a3c3286144d21f64e94c244eb869d7ac0d7b8dec03d950da3b65b7d979"
+                               "95ee25af8c08c4e29d8e283fdabc9d903202d092a3ae99cbef3c27a5bcc0d6";
+static const char *dhx_priv_hex = "166608393404fe192efe4b9fe940aa1b7811f9afb1e10b585e201c8610445501";
+static const char *dhx_pub_hex = "e16876cd2774489429b5d8bfab33ea120ffa6bc84ae1081670679181e6c5b166"
+                                 "6dbe9fc611626b12c8230f531d9c3ca654ff99d70ce44e31519ac48df5f2e5cd"
+                                 "acd1a21b32d16564a6fa1c013bb42adda836b7662d38bc70407fe272806466fc"
+                                 "a34c39fead67d014e37b3e19c530442188c6faf564b96e7ef563f5da1536cd";
+/* Forged subgroup order q' = r = 11 */
+static const char *dhx_rogue_q_hex = "0b";
+/* Malicious peer public value of order r */
+static const char *dhx_rogue_pub_hex = "0102641041b3d6c75bbae92c4c41f7ef4bda77c08c3b788af821f75c851abb2d"
+                                       "0cfa4191bb0663a859f91a9dc28edd5c2998ddd56ec857cb0923513c215274e8"
+                                       "a76b456570c9082004a0abd720faf55a359feac221537f14aab2cf1c12b9cc58"
+                                       "10b2683089547150f2a6eb11e209390f52872185ed9788f5e2a079dba260ec63";
+
+static EVP_PKEY *dhx_key_fromdata(BIGNUM *p, BIGNUM *q, BIGNUM *g,
+    BIGNUM *priv, BIGNUM *pub)
+{
+    EVP_PKEY_CTX *ctx = NULL;
+    OSSL_PARAM_BLD *bld = NULL;
+    OSSL_PARAM *params = NULL;
+    EVP_PKEY *pkey = NULL;
+    int selection = priv != NULL ? EVP_PKEY_KEYPAIR : EVP_PKEY_PUBLIC_KEY;
+
+    if (!TEST_ptr(bld = OSSL_PARAM_BLD_new())
+        || !TEST_true(OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_FFC_P, p))
+        || !TEST_true(OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_FFC_Q, q))
+        || !TEST_true(OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_FFC_G, g))
+        || !TEST_true(OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_PUB_KEY, pub)))
+        goto err;
+    if (priv != NULL
+        && !TEST_true(OSSL_PARAM_BLD_push_BN(bld, OSSL_PKEY_PARAM_PRIV_KEY,
+            priv)))
+        goto err;
+    if (!TEST_ptr(params = OSSL_PARAM_BLD_to_param(bld))
+        || !TEST_ptr(ctx = EVP_PKEY_CTX_new_from_name(NULL, "DHX", NULL))
+        || !TEST_int_gt(EVP_PKEY_fromdata_init(ctx), 0)
+        || !TEST_int_gt(EVP_PKEY_fromdata(ctx, &pkey, selection, params), 0)) {
+        EVP_PKEY_free(pkey);
+        pkey = NULL;
+    }
+
+err:
+    EVP_PKEY_CTX_free(ctx);
+    OSSL_PARAM_free(params);
+    OSSL_PARAM_BLD_free(bld);
+    return pkey;
+}
+
+static int dh_set_peer_subgroup_test(void)
+{
+    int ok = 0;
+    BIGNUM *p = NULL, *q = NULL, *g = NULL, *priv = NULL, *pub = NULL;
+    BIGNUM *rogue_q = NULL, *rogue_pub = NULL;
+    EVP_PKEY *local = NULL, *good_peer = NULL, *rogue_peer = NULL;
+    EVP_PKEY_CTX *dctx = NULL;
+
+    if (!TEST_true(BN_hex2bn(&p, dhx_p_hex))
+        || !TEST_true(BN_hex2bn(&q, dhx_q_hex))
+        || !TEST_true(BN_hex2bn(&g, dhx_g_hex))
+        || !TEST_true(BN_hex2bn(&priv, dhx_priv_hex))
+        || !TEST_true(BN_hex2bn(&pub, dhx_pub_hex))
+        || !TEST_true(BN_hex2bn(&rogue_q, dhx_rogue_q_hex))
+        || !TEST_true(BN_hex2bn(&rogue_pub, dhx_rogue_pub_hex)))
+        goto err;
+
+    /* Victim's private key with the genuine domain parameters (p, q, g). */
+    if (!TEST_ptr(local = dhx_key_fromdata(p, q, g, priv, pub)))
+        goto err;
+
+    /*
+     * Control: a legitimate peer sharing the exact same parameters (it reuses
+     * the victim's public value here, which is sufficient for set_peer) must
+     * be accepted both before and after the fix.
+     */
+    if (!TEST_ptr(good_peer = dhx_key_fromdata(p, q, g, NULL, pub)))
+        goto err;
+
+    if (!TEST_ptr(dctx = EVP_PKEY_CTX_new_from_pkey(NULL, local, NULL))
+        || !TEST_int_gt(EVP_PKEY_derive_init(dctx), 0)
+        || !TEST_int_gt(EVP_PKEY_derive_set_peer(dctx, good_peer), 0)) {
+        TEST_info("legitimate same-parameter peer was unexpectedly rejected");
+        goto err;
+    }
+    EVP_PKEY_CTX_free(dctx);
+    dctx = NULL;
+
+    /*
+     * Malicious peer: same p and g, but a forged small q' = r and a public
+     * value of order r. Before the fix this is accepted (q is ignored when
+     * matching domain parameters), enabling the small-subgroup attack. After
+     * the fix set_peer must reject it because q' != q.
+     */
+    if (!TEST_ptr(rogue_peer = dhx_key_fromdata(p, rogue_q, g, NULL,
+                      rogue_pub)))
+        goto err;
+
+    if (!TEST_ptr(dctx = EVP_PKEY_CTX_new_from_pkey(NULL, local, NULL))
+        || !TEST_int_gt(EVP_PKEY_derive_init(dctx), 0))
+        goto err;
+
+    if (!TEST_int_le(EVP_PKEY_derive_set_peer(dctx, rogue_peer), 0)) {
+        TEST_error("CVE-2026-42770: EVP_PKEY_derive_set_peer() accepted a DHX "
+                   "peer with a forged subgroup order q");
+        goto err;
+    }
+
+    ok = 1;
+err:
+    EVP_PKEY_CTX_free(dctx);
+    EVP_PKEY_free(rogue_peer);
+    EVP_PKEY_free(good_peer);
+    EVP_PKEY_free(local);
+    BN_free(rogue_pub);
+    BN_free(rogue_q);
+    BN_free(pub);
+    BN_free(priv);
+    BN_free(g);
+    BN_free(q);
+    BN_free(p);
+    return ok;
+}
+
 #endif
 
 int setup_tests(void)
@@ -949,6 +1108,7 @@ int setup_tests(void)
     ADD_TEST(dh_load_pkcs3_namedgroup_privlen_test);
     ADD_TEST(dh_rfc5114_fix_nid_test);
     ADD_TEST(dh_set_dh_nid_test);
+    ADD_TEST(dh_set_peer_subgroup_test);
 #endif
     return 1;
 }
