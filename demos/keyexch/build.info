@@ -4,8 +4,12 @@
 #
 #    LD_LIBRARY_PATH=../.. ./x25519
 
-PROGRAMS{noinst} = x25519
+PROGRAMS{noinst} = x25519 dhx_subgroup_check
 
 INCLUDE[x25519]=../../include
 SOURCE[x25519]=x25519.c
 DEPEND[x25519]=../../libcrypto
+
+INCLUDE[dhx_subgroup_check]=../../include
+SOURCE[dhx_subgroup_check]=dhx_subgroup_check.c
+DEPEND[dhx_subgroup_check]=../../libcrypto

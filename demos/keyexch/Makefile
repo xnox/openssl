@@ -4,7 +4,7 @@
 #
 #    LD_LIBRARY_PATH=../.. ./x25519
 
-TESTS = x25519 ecdh
+TESTS = x25519 ecdh dhx_subgroup_check
 
 CFLAGS  = -I../../include -g -Wall
 LDFLAGS = -L../..
@@ -14,6 +14,7 @@ all: $(TESTS)
 
 x25519: x25519.o
 ecdh: ecdh.o
+dhx_subgroup_check: dhx_subgroup_check.o
 
 $(TESTS):
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
