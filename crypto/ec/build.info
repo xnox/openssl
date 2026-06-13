@@ -5,6 +5,8 @@ IF[{- !$disabled{asm} -}]
 
   $ECASM_x86_64=ecp_nistz256.c ecp_nistz256-x86_64.s
   $ECDEF_x86_64=ECP_NISTZ256_ASM
+  $ECASM_x86_64=$ECASM_x86_64 ecp_nistz384.c ecp_nistz384_table.c ecp_nistz384-x86_64.s
+  $ECDEF_x86_64=$ECDEF_x86_64 ECP_NISTZ384_ASM
   IF[{- !$disabled{'ecx'} -}]
     $ECASM_x86_64=$ECASM_x86_64 x25519-x86_64.s
     $ECDEF_x86_64=$ECDEF_x86_64 X25519_ASM
@@ -31,6 +33,8 @@ IF[{- !$disabled{asm} -}]
   $ECDEF_armv4=ECP_NISTZ256_ASM
   $ECASM_aarch64=ecp_nistz256.c ecp_nistz256-armv8.S
   $ECDEF_aarch64=ECP_NISTZ256_ASM
+  $ECASM_aarch64=$ECASM_aarch64 ecp_nistz384.c ecp_nistz384_table.c ecp_nistz384-armv8.S
+  $ECDEF_aarch64=$ECDEF_aarch64 ECP_NISTZ384_ASM
   IF[{- !$disabled{'sm2'} -}]
     $ECASM_aarch64=$ECASM_aarch64 ecp_sm2p256.c ecp_sm2p256-armv8.S
     IF[{- !$disabled{'sm2-precomp'} -}]
@@ -110,6 +114,8 @@ GENERATE[ecp_nistz256-x86.S]=asm/ecp_nistz256-x86.pl
 
 GENERATE[ecp_nistz256-x86_64.s]=asm/ecp_nistz256-x86_64.pl
 
+GENERATE[ecp_nistz384-x86_64.s]=asm/ecp_nistz384-x86_64.pl
+
 GENERATE[ecp_nistz256-avx2.s]=asm/ecp_nistz256-avx2.pl
 
 GENERATE[ecp_nistz256-sparcv9.S]=asm/ecp_nistz256-sparcv9.pl
@@ -125,6 +131,8 @@ GENERATE[ecp_nistz256-armv4.S]=asm/ecp_nistz256-armv4.pl
 INCLUDE[ecp_nistz256-armv4.o]=..
 GENERATE[ecp_nistz256-armv8.S]=asm/ecp_nistz256-armv8.pl
 INCLUDE[ecp_nistz256-armv8.o]=..
+GENERATE[ecp_nistz384-armv8.S]=asm/ecp_nistz384-armv8.pl
+INCLUDE[ecp_nistz384-armv8.o]=..
 GENERATE[ecp_nistz256-ppc64.s]=asm/ecp_nistz256-ppc64.pl
 
 GENERATE[ecp_nistp384-ppc64.s]=asm/ecp_nistp384-ppc64.pl

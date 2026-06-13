@@ -640,6 +640,9 @@ EC_GROUP *ossl_ec_group_new_ex(OSSL_LIB_CTX *libctx, const char *propq,
  */
 const EC_METHOD *EC_GFp_nistz256_method(void);
 #endif
+#ifdef ECP_NISTZ384_ASM
+const EC_METHOD *EC_GFp_nistz384_method(void);
+#endif
 #ifdef S390X_EC_ASM
 const EC_METHOD *EC_GFp_s390x_nistp256_method(void);
 const EC_METHOD *EC_GFp_s390x_nistp384_method(void);
